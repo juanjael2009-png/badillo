@@ -1,151 +1,184 @@
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.Scanner;
+
 import org.bson.Document;
+
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.FindIterable;
 import com.mongodb.client.model.Accumulators;
-import com.mongodb.client.model.Aggregates;
-import java.util.Arrays;
+import com.mongodb.client.model.Aggregates; // Necesario para la limpieza de pantalla pro
 
 public class MenuPrincipal {
     public static void main(String[] args) {
-        String uri = "mongodb://localhost:27017";
+        String direccionEnlace = "mongodb://localhost:27017";
 
-        try (MongoClient mongoClient = MongoClients.create(uri);
+        try (MongoClient clienteMongo = MongoClients.create(direccionEnlace);
              Scanner teclado = new Scanner(System.in)) {
             
-            MongoDatabase db = mongoClient.getDatabase("TallerMecanico_DB");
-            int opcion;
+            MongoDatabase baseDeDatos = clienteMongo.getDatabase("TallerMecanico_DB");
+            int opcionSeleccionada;
 
             do {
+                // LIMPIEZA DE PANTALLA MEJORADA (Sin advertencias de VS Code)
                 try {
-                    new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
-                } catch (Exception e) {
+                    if (System.getProperty("os.name").contains("Windows")) {
+                        new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
+                    } else {
+                        System.out.print("\033[H\033[2J");
+                        System.out.flush();
+                    }
+                } catch (IOException | InterruptedException errorLimpieza) {
                     for (int i = 0; i < 50; i++) System.out.println();
                 }
 
-                System.out.println("\n_________________________________________");
+                System.out.println("\n==========================================");
                 System.out.println("       SISTEMA DE GESTION DE TALLER       ");
-                System.out.println("__________________________________________");
+                System.out.println("==========================================");
                 System.out.println("1. VENDEDOR: Crear Cita (Entrada)");
                 System.out.println("2. MECANICO: Atender Citas Pendientes");
-                System.out.println("3. ADMIN: Ver Clientes Frecuentes (Auto)");
-                System.out.println("4. CATALOGO: Consultar Servicios");
+                System.out.println("3. ADMIN: Ver Clientes Frecuentes (Automatico)");
+                System.out.println("4. CATALOGO: Lista de Precios y Servicios");
                 System.out.println("5. SALIR");
                 System.out.print("Seleccione una opcion: ");
                 
                 if (!teclado.hasNextInt()) {
-                    System.out.println("\n  [!] ERROR: Ingrese solo números.");
+                    System.out.println("\n  [!] ERROR: Por favor ingrese solo números.");
                     teclado.next(); teclado.nextLine();
-                    opcion = 0; continue;
+                    opcionSeleccionada = 0; continue;
                 }
 
-                opcion = teclado.nextInt();
+                opcionSeleccionada = teclado.nextInt();
                 teclado.nextLine(); 
 
-                switch (opcion) {
+                switch (opcionSeleccionada) {
                     case 1 -> {
                         System.out.println("\n--- REGISTRO DE NUEVA CITA ---");
                         System.out.print("Nombre del Dueño: ");
-                        String cliente = teclado.nextLine();
+                        String nombreCliente = teclado.nextLine();
                         System.out.print("Diagnostico de falla: ");
-                        String falla = teclado.nextLine();
+                        String diagnosticoFalla = teclado.nextLine();
                         System.out.print("Fecha de la cita (AAAA/MM/DD): ");
                         String fechaCita = teclado.nextLine();
 
-                        db.getCollection("citas").insertOne(new Document("cliente", cliente)
-                                            .append("falla", falla)
+                        Document nuevaCita = new Document("cliente", nombreCliente)
+                                            .append("falla", diagnosticoFalla)
                                             .append("fecha_cita", fechaCita)
-                                            .append("estado", "Pendiente"));
+                                            .append("estado", "Pendiente");
+
+                        baseDeDatos.getCollection("citas").insertOne(nuevaCita);
                         
-                        System.out.println("\n>> Cita guardada. Presione ENTER...");
+                        System.out.println("\n>> Cita guardada correctamente.");
+                        System.out.println("Presione ENTER para volver al menú...");
                         teclado.nextLine();
                     }
                     case 2 -> {
                         System.out.println("\n--- CITAS PENDIENTES ---");
-                        FindIterable<Document> pendientes = db.getCollection("citas").find(new Document("estado", "Pendiente"));
+                        FindIterable<Document> citasPendientes = baseDeDatos.getCollection("citas")
+                                .find(new Document("estado", "Pendiente"));
                         
-                        boolean hayDatos = false;
-                        for (Document d : pendientes) {
-                            System.out.println("- [" + d.getString("cliente") + "] Cita: " + d.getString("fecha_cita"));
-                            hayDatos = true;
+                        boolean hayCitasDisponibles = false;
+                        for (Document cita : citasPendientes) {
+                            System.out.println("- [" + cita.getString("cliente") + "] Falla: " + cita.getString("falla") + " (Fecha: " + cita.getString("fecha_cita") + ")");
+                            hayCitasDisponibles = true;
                         }
 
-                        if (!hayDatos) {
-                            System.out.println("No hay pendientes.");
+                        if (!hayCitasDisponibles) {
+                            System.out.println("No hay citas pendientes por el momento.");
                         } else {
-                            System.out.print("\nNombre del cliente a atender: ");
-                            String clienteA = teclado.nextLine();
+                            System.out.print("\nEscriba el nombre del cliente a atender: ");
+                            String clienteAAtender = teclado.nextLine();
 
-                            Document citaExistente = db.getCollection("citas").find(
-                                new Document("cliente", clienteA).append("estado", "Pendiente")
+                            Document citaEncontrada = baseDeDatos.getCollection("citas").find(
+                                new Document("cliente", clienteAAtender).append("estado", "Pendiente")
                             ).first();
 
-                            if (citaExistente == null) {
-                                System.out.println("\n  [!] ERROR: Cliente no encontrado.");
+                            if (citaEncontrada == null) {
+                                System.out.println("\n  [!] ERROR: El cliente no existe en la lista de pendientes.");
                             } else {
-                                String fechaCitaOriginal = citaExistente.getString("fecha_cita");
-                                String fechaFin;
+                                String fechaCitaOriginal = citaEncontrada.getString("fecha_cita");
+                                String fechaDeFinalizacion;
 
                                 while (true) {
-                                    System.out.print("Fecha entrega (Mínimo " + fechaCitaOriginal + "): ");
-                                    fechaFin = teclado.nextLine();
-                                    if (fechaFin.compareTo(fechaCitaOriginal) >= 0) break;
-                                    System.out.println("  !!! Fecha inválida. Reintente.");
+                                    System.out.println("Fecha registrada de la cita: " + fechaCitaOriginal);
+                                    System.out.print("Ingrese fecha de entrega (AAAA/MM/DD): ");
+                                    fechaDeFinalizacion = teclado.nextLine();
+                                    
+                                    if (fechaDeFinalizacion.compareTo(fechaCitaOriginal) >= 0) {
+                                        break; 
+                                    } else {
+                                        System.out.println("\n  [!] ERROR: La fecha de entrega no puede ser anterior a la cita.");
+                                    }
                                 }
 
-                                System.out.print("¿Reparacion realizada?: ");
-                                String reparacion = teclado.nextLine();
+                                System.out.print("¿Que reparacion se le realizo finalmente?: ");
+                                String reparacionRealizada = teclado.nextLine();
 
-                                db.getCollection("reportes").insertOne(new Document("cliente", clienteA)
-                                                            .append("trabajo_realizado", reparacion)
-                                                            .append("fecha_finalizacion", fechaFin));
+                                baseDeDatos.getCollection("reportes").insertOne(new Document("cliente", clienteAAtender)
+                                                            .append("trabajo_realizado", reparacionRealizada)
+                                                            .append("fecha_finalizacion", fechaDeFinalizacion));
 
-                                db.getCollection("citas").updateOne(
-                                    new Document("cliente", clienteA).append("estado", "Pendiente"), 
+                                baseDeDatos.getCollection("citas").updateOne(
+                                    new Document("cliente", clienteAAtender).append("estado", "Pendiente"), 
                                     new Document("$set", new Document("estado", "Terminado"))
                                 );
-                                System.out.println("\n>> ¡Listo!");
+                                System.out.println("\n>> ¡Proceso completado! Cita cerrada y reporte generado.");
                             }
                         }
+                        System.out.println("\nPresione ENTER para continuar...");
                         teclado.nextLine();
                     }
                     case 3 -> {
                         System.out.println("\n--- LISTA DE CLIENTES FRECUENTES ---");
-                        System.out.println("(Clientes con 2 o más servicios realizados)\n");
-
-                        var pipeline = Arrays.asList(
-                            Aggregates.group("$cliente", Accumulators.sum("visitas", 1)),
-                            Aggregates.match(new Document("visitas", new Document("$gte", 2)))
+                        var procesoAgregacion = Arrays.asList(
+                            Aggregates.group("$cliente", Accumulators.sum("total_visitas", 1)),
+                            Aggregates.match(new Document("total_visitas", new Document("$gte", 2)))
                         );
 
-                        var resultados = db.getCollection("reportes").aggregate(pipeline);
+                        var resultadosFrecuentes = baseDeDatos.getCollection("reportes").aggregate(procesoAgregacion);
                         
-                        boolean hayFrecuentes = false;
-                        for (Document res : resultados) {
-                            System.out.println("⭐ Cliente: " + res.getString("_id") + " | Total Visitas: " + res.getInteger("visitas"));
-                            hayFrecuentes = true;
+                        boolean hayClientesFrecuentes = false;
+                        for (Document resultado : resultadosFrecuentes) {
+                            System.out.println("⭐ Cliente: " + resultado.getString("_id") + " | Total Visitas: " + resultado.getInteger("total_visitas"));
+                            hayClientesFrecuentes = true;
                         }
 
-                        if (!hayFrecuentes) {
-                            System.out.println("Aún no hay clientes con la constancia suficiente.");
+                        if (!hayClientesFrecuentes) {
+                            System.out.println("Aún no hay clientes registrados con visitas recurrentes.");
                         }
 
                         System.out.println("\nPresione ENTER para continuar...");
                         teclado.nextLine();
                     }
                     case 4 -> {
-                        System.out.println("\n--- CATALOGO ---");
-                        System.out.println("- Cambio de Aceite\n- Revision de Frenos\n- Ajuste de Motor\n- Suspension");
-                        System.out.println("\nPresione ENTER para volver...");
+                        System.out.println("\n==========================================");
+                        System.out.println("       CATALOGO DE PRECIOS REALES 2026     ");
+                        System.out.println("==========================================");
+                        System.out.printf("%-25s %-10s\n", "SERVICIO", "PRECIO (MXN)");
+                        System.out.println("------------------------------------------");
+                        System.out.printf("%-25s %-10s\n", "Cambio de Aceite Sintetico", "$1,250");
+                        System.out.printf("%-25s %-10s\n", "Afinacion Mayor", "$2,800");
+                        System.out.printf("%-25s %-10s\n", "Frenos Delanteros", "$1,450");
+                        System.out.printf("%-25s %-10s\n", "Escaneo por Computadora", "$450");
+                        System.out.printf("%-25s %-10s\n", "Carga de Aire Acondicionado", "$850");
+                        System.out.printf("%-25s %-10s\n", "Alineacion y Balanceo", "$650");
+                        System.out.printf("%-25s %-10s\n", "Lavado de Motor", "$350");
+                        System.out.println("------------------------------------------");
                         teclado.nextLine();
                     }
-                    case 5 -> System.out.println("Saliendo del sistema...");
+                    case 5 -> System.out.println("Cerrando el sistema...");
+                    
+                    default -> {
+                        System.out.println("\n  [!] ERROR: Opción no válida.");
+                        teclado.nextLine();
+                    }
                 }
-            } while (opcion != 5);
-        } catch (Exception e) {
-            System.err.println("Error: " + e.getMessage());
+            } while (opcionSeleccionada != 5);
+
+        } catch (Exception error) {
+            System.err.println("Error en el sistema: " + error.getMessage());
         }
     }
 }
