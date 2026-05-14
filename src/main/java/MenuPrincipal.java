@@ -12,9 +12,7 @@ import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
 
 public class MenuPrincipal {
-    // CODIGOS DE COLOR ANSI
     public static final String RESET = "\u001B[0m";
-    public static final String ROJO = "\u001B[31m";
     public static final String VERDE = "\u001B[32m";
     public static final String AMARILLO = "\u001B[33m";
     public static final String AZUL = "\u001B[34m";
@@ -46,15 +44,16 @@ public class MenuPrincipal {
                 System.out.println(AZUL + "==========================================" + RESET);
                 System.out.println("1. VENDEDOR: Crear Cita (Entrada)");
                 System.out.println("2. MECANICO: Atender Citas Pendientes");
-                System.out.println("3. ADMIN: Ver Clientes Frecuentes (Automatico)");
-                System.out.println("4. CATALOGO: Lista de Precios y Servicios");
-                System.out.println(ROJO + "5. SALIR" + RESET);
+                System.out.println("3. ADMIN: Registro de Clientes Frecuentes");
+                System.out.println("4. CATALOGO: Consultar Servicios");
+                System.out.println("5. SALIR");
                 System.out.print("\nSeleccione una opcion: ");
                 
                 if (!teclado.hasNextInt()) {
-                    System.out.println(ROJO + "\n  [!] ERROR: Ingrese solo números." + RESET);
-                    teclado.next(); teclado.nextLine();
-                    opcionSeleccionada = 0; continue;
+                    teclado.next(); 
+                    teclado.nextLine();
+                    opcionSeleccionada = 0; 
+                    continue; 
                 }
 
                 opcionSeleccionada = teclado.nextInt();
@@ -76,37 +75,36 @@ public class MenuPrincipal {
                                             .append("estado", "Pendiente"));
                         
                         System.out.println(VERDE + "\n>> Cita guardada correctamente." + RESET);
-                        System.out.println("Presione ENTER para volver...");
                         teclado.nextLine();
                     }
                     case 2 -> {
-                        System.out.println(CIAN + "\n--- CITAS PENDIENTES ---" + RESET);
+                        System.out.println(CIAN + "\n--- CITAS PENDIENTES EN SISTEMA ---" + RESET);
                         FindIterable<Document> citasPendientes = baseDeDatos.getCollection("citas").find(new Document("estado", "Pendiente"));
                         
                         boolean hayCitas = false;
                         for (Document cita : citasPendientes) {
-                            System.out.println("- [" + AMARILLO + cita.getString("cliente") + RESET + "] Falla: " + cita.getString("falla"));
+                            System.out.println("- [" + AMARILLO + cita.getString("cliente") + RESET + "] Falla: " + cita.getString("falla") + " (Cita: " + cita.getString("fecha_cita") + ")");
                             hayCitas = true;
                         }
 
                         if (!hayCitas) {
                             System.out.println("No hay citas pendientes.");
                         } else {
-                            System.out.print("\nNombre del cliente a atender: ");
+                            System.out.print("\nEscriba el NOMBRE del cliente a atender: ");
                             String clienteAAtender = teclado.nextLine();
                             Document encontrada = baseDeDatos.getCollection("citas").find(new Document("cliente", clienteAAtender).append("estado", "Pendiente")).first();
 
-                            if (encontrada == null) {
-                                System.out.println(ROJO + "  [!] ERROR: Cliente no encontrado." + RESET);
-                            } else {
+                            if (encontrada != null) {
+                                String fechaCitaOriginal = encontrada.getString("fecha_cita");
                                 String fechaFin;
                                 while (true) {
-                                    System.out.print("Fecha entrega (AAAA/MM/DD): ");
+                                    System.out.println("Fecha registrada: " + fechaCitaOriginal);
+                                    System.out.print("Fecha de entrega (AAAA/MM/DD): ");
                                     fechaFin = teclado.nextLine();
-                                    if (fechaFin.compareTo(encontrada.getString("fecha_cita")) >= 0) break;
-                                    System.out.println(ROJO + "  [!] Fecha inválida." + RESET);
+                                    if (fechaFin.compareTo(fechaCitaOriginal) >= 0) break;
+                                    System.out.println("   [!] Verifique la fecha."); 
                                 }
-                                System.out.print("¿Reparacion realizada?: ");
+                                System.out.print("¿Que reparacion se le hizo finalmente?: ");
                                 String reparacion = teclado.nextLine();
 
                                 baseDeDatos.getCollection("reportes").insertOne(new Document("cliente", clienteAAtender).append("trabajo", reparacion).append("fecha", fechaFin));
@@ -118,29 +116,23 @@ public class MenuPrincipal {
                     }
                     case 3 -> {
                         System.out.println(AMARILLO + "\n--- CLIENTES FRECUENTES ---" + RESET);
-                        var pipeline = Arrays.asList(Aggregates.group("$cliente", Accumulators.sum("total", 1)), Aggregates.match(new Document("total", new Document("$gte", 2))));
-                        var resultados = baseDeDatos.getCollection("reportes").aggregate(pipeline);
+                        var procesoAgregacion = Arrays.asList(Aggregates.group("$cliente", Accumulators.sum("total", 1)), Aggregates.match(new Document("total", new Document("$gte", 2))));
+                        var resultados = baseDeDatos.getCollection("reportes").aggregate(procesoAgregacion);
                         for (Document res : resultados) {
-                            System.out.println("⭐ " + VERDE + res.getString("_id") + RESET + " | Visitas: " + res.getInteger("total"));
+                            System.out.println(".3 " + VERDE + res.getString("_id") + RESET + " | Visitas: " + res.getInteger("total"));
                         }
                         teclado.nextLine();
                     }
                     case 4 -> {
-                        System.out.println(AZUL + "\n==========================================" + RESET);
-                        System.out.println(CIAN + "       CATALOGO DE PRECIOS 2026           " + RESET);
-                        System.out.println(AZUL + "==========================================" + RESET);
+                        System.out.println(AZUL + "\n--- CATALOGO ---" + RESET);
                         System.out.printf("%-25s %-10s\n", "SERVICIO", "PRECIO");
-                        System.out.println("------------------------------------------");
                         System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Cambio de Aceite", "$1,250");
                         System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Afinacion Mayor", "$2,800");
-                        System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Frenos", "$1,450");
                         teclado.nextLine();
                     }
-                    case 5 -> System.out.println(AMARILLO + "Saliendo..." + RESET);
                 }
             } while (opcionSeleccionada != 5);
         } catch (Exception error) {
-            System.err.println("Error: " + error.getMessage());
         }
     }
 }
