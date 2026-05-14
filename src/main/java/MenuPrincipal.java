@@ -75,6 +75,7 @@ public class MenuPrincipal {
                                             .append("estado", "Pendiente"));
                         
                         System.out.println(VERDE + "\n>> Cita guardada correctamente." + RESET);
+                        System.out.println("Presione ENTER para continuar...");
                         teclado.nextLine();
                     }
                     case 2 -> {
@@ -91,43 +92,76 @@ public class MenuPrincipal {
                             System.out.println("No hay citas pendientes.");
                         } else {
                             System.out.print("\nEscriba el NOMBRE del cliente a atender: ");
-                            String clienteAAtender = teclado.nextLine();
-                            Document encontrada = baseDeDatos.getCollection("citas").find(new Document("cliente", clienteAAtender).append("estado", "Pendiente")).first();
+                            String nombreIngresado = teclado.nextLine();
+
+                            Document encontrada = baseDeDatos.getCollection("citas").find(
+                                new Document("cliente", nombreIngresado).append("estado", "Pendiente")
+                            ).first();
 
                             if (encontrada != null) {
                                 String fechaCitaOriginal = encontrada.getString("fecha_cita");
                                 String fechaFin;
                                 while (true) {
-                                    System.out.println("Fecha registrada: " + fechaCitaOriginal);
+                                    System.out.println("Fecha registrada de cita: " + fechaCitaOriginal);
                                     System.out.print("Fecha de entrega (AAAA/MM/DD): ");
                                     fechaFin = teclado.nextLine();
                                     if (fechaFin.compareTo(fechaCitaOriginal) >= 0) break;
-                                    System.out.println("   [!] Verifique la fecha."); 
+                                    System.out.println("   [!] La fecha no puede ser anterior a la cita."); 
                                 }
                                 System.out.print("¿Que reparacion se le hizo finalmente?: ");
                                 String reparacion = teclado.nextLine();
 
-                                baseDeDatos.getCollection("reportes").insertOne(new Document("cliente", clienteAAtender).append("trabajo", reparacion).append("fecha", fechaFin));
-                                baseDeDatos.getCollection("citas").updateOne(new Document("cliente", clienteAAtender).append("estado", "Pendiente"), new Document("$set", new Document("estado", "Terminado")));
+                                baseDeDatos.getCollection("reportes").insertOne(new Document("cliente", nombreIngresado)
+                                                            .append("trabajo", reparacion)
+                                                            .append("fecha", fechaFin));
+                                
+                                baseDeDatos.getCollection("citas").updateOne(
+                                    new Document("cliente", nombreIngresado).append("estado", "Pendiente"), 
+                                    new Document("$set", new Document("estado", "Terminado"))
+                                );
                                 System.out.println(VERDE + "\n>> ¡Proceso completado!" + RESET);
+                            } else {
+                                System.out.println("\n   [!] El cliente '" + nombreIngresado + "' no tiene citas pendientes.");
                             }
                         }
+                        System.out.println("Presione ENTER para continuar...");
                         teclado.nextLine();
                     }
                     case 3 -> {
                         System.out.println(AMARILLO + "\n--- CLIENTES FRECUENTES ---" + RESET);
-                        var procesoAgregacion = Arrays.asList(Aggregates.group("$cliente", Accumulators.sum("total", 1)), Aggregates.match(new Document("total", new Document("$gte", 2))));
+                        var procesoAgregacion = Arrays.asList(
+                            Aggregates.group("$cliente", Accumulators.sum("total", 1)), 
+                            Aggregates.match(new Document("total", new Document("$gte", 2)))
+                        );
                         var resultados = baseDeDatos.getCollection("reportes").aggregate(procesoAgregacion);
+                        
+                        boolean hayFrecuentes = false;
                         for (Document res : resultados) {
-                            System.out.println(".3 " + VERDE + res.getString("_id") + RESET + " | Visitas: " + res.getInteger("total"));
+                            System.out.println("⭐ " + VERDE + res.getString("_id") + RESET + " | Visitas: " + res.getInteger("total"));
+                            hayFrecuentes = true;
                         }
+                        if (!hayFrecuentes) System.out.println("No hay clientes frecuentes registrados.");
+                        
+                        System.out.println("\nPresione ENTER para continuar...");
                         teclado.nextLine();
                     }
                     case 4 -> {
-                        System.out.println(AZUL + "\n--- CATALOGO ---" + RESET);
+                        System.out.println(AZUL + "\n==========================================" + RESET);
+                        System.out.println(CIAN + "       CATALOGO DE PRECIOS 2026           " + RESET);
+                        System.out.println(AZUL + "==========================================" + RESET);
                         System.out.printf("%-25s %-10s\n", "SERVICIO", "PRECIO");
+                        System.out.println("------------------------------------------");
                         System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Cambio de Aceite", "$1,250");
                         System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Afinacion Mayor", "$2,800");
+                        System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Frenos", "$1,450");
+                        System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Escaneo Computadora", "$450");
+                        System.out.println("------------------------------------------");
+                        System.out.println("\nPresione ENTER para volver...");
+                        teclado.nextLine();
+                    }
+                    case 5 -> {
+                        System.out.println("\n" + AMARILLO + "Has salido del menú de gestión." + RESET);
+                        System.out.println("Presione ENTER para finalizar la sesión...");
                         teclado.nextLine();
                     }
                 }
