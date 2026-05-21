@@ -45,7 +45,7 @@ public class MenuPrincipal {
                 System.out.println("1. VENDEDOR: Crear Cita (Entrada)");
                 System.out.println("2. MECANICO: Atender Citas Pendientes");
                 System.out.println("3. ADMIN: Registro de Clientes Frecuentes");
-                System.out.println("4. CATALOGO: Consultar Servicios");
+                System.out.println("4. CATALOGO: Consultar Servicios y Refacciones");
                 System.out.println("5. SALIR");
                 System.out.print("\nSeleccione una opcion: ");
                 
@@ -94,11 +94,16 @@ public class MenuPrincipal {
                             System.out.print("\nEscriba el NOMBRE del cliente a atender: ");
                             String nombreIngresado = teclado.nextLine();
 
-                            Document encontrada = baseDeDatos.getCollection("citas").find(
-                                new Document("cliente", nombreIngresado).append("estado", "Pendiente")
-                            ).first();
+                            Document encontrada = null;
+                            for (Document cita : citasPendientes) {
+                                if (cita.getString("cliente").equalsIgnoreCase(nombreIngresado)) {
+                                    encontrada = cita;
+                                    break;
+                                }
+                            }
 
                             if (encontrada != null) {
+                                String nombreBaseDatos = encontrada.getString("cliente");
                                 String fechaCitaOriginal = encontrada.getString("fecha_cita");
                                 String fechaFin;
                                 while (true) {
@@ -111,12 +116,12 @@ public class MenuPrincipal {
                                 System.out.print("¿Que reparacion se le hizo finalmente?: ");
                                 String reparacion = teclado.nextLine();
 
-                                baseDeDatos.getCollection("reportes").insertOne(new Document("cliente", nombreIngresado)
+                                baseDeDatos.getCollection("reportes").insertOne(new Document("cliente", nombreBaseDatos)
                                                             .append("trabajo", reparacion)
                                                             .append("fecha", fechaFin));
                                 
                                 baseDeDatos.getCollection("citas").updateOne(
-                                    new Document("cliente", nombreIngresado).append("estado", "Pendiente"), 
+                                    new Document("cliente", nombreBaseDatos).append("estado", "Pendiente"), 
                                     new Document("$set", new Document("estado", "Terminado"))
                                 );
                                 System.out.println(VERDE + "\n>> ¡Proceso completado!" + RESET);
@@ -146,18 +151,154 @@ public class MenuPrincipal {
                         teclado.nextLine();
                     }
                     case 4 -> {
-                        System.out.println(AZUL + "\n==========================================" + RESET);
-                        System.out.println(CIAN + "       CATALOGO DE PRECIOS 2026           " + RESET);
-                        System.out.println(AZUL + "==========================================" + RESET);
-                        System.out.printf("%-25s %-10s\n", "SERVICIO", "PRECIO");
-                        System.out.println("------------------------------------------");
-                        System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Cambio de Aceite", "$1,250");
-                        System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Afinacion Mayor", "$2,800");
-                        System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Frenos", "$1,450");
-                        System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Escaneo Computadora", "$450");
-                        System.out.println("------------------------------------------");
-                        System.out.println("\nPresione ENTER para volver...");
-                        teclado.nextLine();
+                        int opcionCatalogo;
+                        do {
+                            try {
+                                if (System.getProperty("os.name").contains("Windows")) {
+                                    new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
+                                } else {
+                                    System.out.print("\033[H\033[2J");
+                                    System.out.flush();
+                                }
+                            } catch (IOException | InterruptedException e) {}
+
+                            System.out.println(AZUL + "==========================================" + RESET);
+                            System.out.println(CIAN + "           CATALOGO DE SECCIONES          " + RESET);
+                            System.out.println(AZUL + "==========================================" + RESET);
+                            System.out.println("1. SECCION: Llantas (Marcas y Medidas)");
+                            System.out.println("2. SECCION: Motores (Nuevos y Reconstruidos)");
+                            System.out.println("3. SECCION: Pilas y Baterías");
+                            System.out.println("4. REGRESAR AL MENÚ PRINCIPAL");
+                            System.out.print("\nSeleccione una sección: ");
+
+                            if (!teclado.hasNextInt()) {
+                                teclado.next(); teclado.nextLine();
+                                opcionCatalogo = 0; continue;
+                            }
+                            opcionCatalogo = teclado.nextInt();
+                            teclado.nextLine();
+
+                            switch (opcionCatalogo) {
+                                case 1 -> {
+                                    int paginaLlantas = 1;
+                                    String navegacionLlantas;
+                                    do {
+                                        try {
+                                            if (System.getProperty("os.name").contains("Windows")) {
+                                                new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
+                                            } else {
+                                                System.out.print("\033[H\033[2J");
+                                                System.out.flush();
+                                            }
+                                        } catch (IOException | InterruptedException e) {}
+
+                                        System.out.println(AMARILLO + "--- SECCION LLANTAS (Pagina " + paginaLlantas + " de 2) ---" + RESET);
+                                        System.out.printf("%-25s %-10s\n", "PRODUCTO / MARCA", "PRECIO");
+                                        System.out.println("------------------------------------------");
+                                        
+                                        if (paginaLlantas == 1) {
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Michelin Defender R16", "$2,450");
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Bridgestone Ecopia R15", "$1,890");
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Goodyear Assurance R17", "$2,150");
+                                            System.out.println("------------------------------------------");
+                                            System.out.println("N. Siguiente Página | M. Volver al Menú Catálogo");
+                                        } else {
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Continental TrueContact", "$2,300");
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Pirelli Cinturato P7", "$2,750");
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Hankook Ventus R14", "$1,450");
+                                            System.out.println("------------------------------------------");
+                                            System.out.println("A. Anterior Página | M. Volver al Menú Catálogo");
+                                        }
+                                        
+                                        System.out.print("\nSeleccione acción: ");
+                                        navegacionLlantas = teclado.nextLine().trim().toUpperCase();
+
+                                        if (navegacionLlantas.equals("N") && paginaLlantas == 1) paginaLlantas = 2;
+                                        else if (navegacionLlantas.equals("A") && paginaLlantas == 2) paginaLlantas = 1;
+
+                                    } while (!navegacionLlantas.equals("M"));
+                                }
+                                case 2 -> {
+                                    int paginaMotores = 1;
+                                    String navegacionMotores;
+                                    do {
+                                        try {
+                                            if (System.getProperty("os.name").contains("Windows")) {
+                                                new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
+                                            } else {
+                                                System.out.print("\033[H\033[2J");
+                                                System.out.flush();
+                                            }
+                                        } catch (IOException | InterruptedException e) {}
+
+                                        System.out.println(AMARILLO + "--- SECCION MOTORES (Pagina " + paginaMotores + " de 2) ---" + RESET);
+                                        System.out.printf("%-25s %-10s\n", "MOTOR INTERCAMBIO", "PRECIO");
+                                        System.out.println("------------------------------------------");
+                                        
+                                        if (paginaMotores == 1) {
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Motor Chevrolet 5.3L V8", "$32,000");
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Motor Ford 4.6L V8", "$28,500");
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Motor Nissan 1.6L (Tsuru)", "$14,000");
+                                            System.out.println("------------------------------------------");
+                                            System.out.println("N. Siguiente Página | M. Volver al Menú Catálogo");
+                                        } else {
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Motor Honda 1.8L (Civic)", "$22,500");
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Motor VW 2.0L (Jetta)", "$19,800");
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Motor Toyota 2.4L (Tacoma)", "$26,000");
+                                            System.out.println("------------------------------------------");
+                                            System.out.println("A. Anterior Página | M. Volver al Menú Catálogo");
+                                        }
+                                        
+                                        System.out.print("\nSeleccione acción: ");
+                                        navegacionMotores = teclado.nextLine().trim().toUpperCase();
+
+                                        if (navegacionMotores.equals("N") && paginaMotores == 1) paginaMotores = 2;
+                                        else if (navegacionMotores.equals("A") && paginaMotores == 2) paginaMotores = 1;
+
+                                    } while (!navegacionMotores.equals("M"));
+                                }
+                                case 3 -> {
+                                    int paginaPilas = 1;
+                                    String navegacionPilas;
+                                    do {
+                                        try {
+                                            if (System.getProperty("os.name").contains("Windows")) {
+                                                new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
+                                            } else {
+                                                System.out.print("\033[H\033[2J");
+                                                System.out.flush();
+                                            }
+                                        } catch (IOException | InterruptedException e) {}
+
+                                        System.out.println(AMARILLO + "--- SECCION BATERIAS (Pagina " + paginaPilas + " de 2) ---" + RESET);
+                                        System.out.printf("%-25s %-10s\n", "BATERIA / MARCA", "PRECIO");
+                                        System.out.println("------------------------------------------");
+                                        
+                                        if (paginaPilas == 1) {
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "LTH AC-42-400", "$1,980");
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Optima RedTop (Gel)", "$3,650");
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "America AM-42-400", "$1,420");
+                                            System.out.println("------------------------------------------");
+                                            System.out.println("N. Siguiente Página | M. Volver al Menú Catálogo");
+                                        } else {
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Gonher G-42", "$1,750");
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "Bosch S4 High Output", "$2,290");
+                                            System.out.printf("%-25s " + VERDE + "%-10s\n" + RESET, "DieHard Silver", "$2,100");
+                                            System.out.println("------------------------------------------");
+                                            System.out.println("A. Anterior Página | M. Volver al Menú Catálogo");
+                                        }
+                                        
+                                        System.out.print("\nSeleccione acción: ");
+                                        navegacionPilas = teclado.nextLine().trim().toUpperCase();
+
+                                        if (navegacionPilas.equals("N") && paginaPilas == 1) paginaPilas = 2;
+                                        else if (navegacionPilas.equals("A") && paginaPilas == 2) paginaPilas = 1;
+
+                                    } while (!navegacionPilas.equals("M"));
+                                }
+                            }
+
+                        } while (opcionCatalogo != 4);
                     }
                     case 5 -> {
                         System.out.println("\n" + AMARILLO + "Has salido del menú de gestión." + RESET);
