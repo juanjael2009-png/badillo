@@ -62,19 +62,40 @@ public class MenuPrincipal {
                 switch (opcionSeleccionada) {
                     case 1 -> {
                         System.out.println(CIAN + "\n--- REGISTRO DE NUEVA CITA ---" + RESET);
-                        System.out.print("Nombre del Dueño: ");
-                        String nombreCliente = teclado.nextLine();
+                        
+                        String nombreCliente;
+                        while (true) {
+                            System.out.print("Nombre del Dueño: ");
+                            nombreCliente = teclado.nextLine().trim();
+                            if (!nombreCliente.isEmpty()) break;
+                            System.out.println("   [!] El nombre no puede quedar vacio.");
+                        }
+
                         System.out.print("Diagnostico de falla: ");
                         String diagnosticoFalla = teclado.nextLine();
-                        System.out.print("Fecha de la cita (AAAA/MM/DD): ");
-                        String fechaCita = teclado.nextLine();
-
-                        baseDeDatos.getCollection("citas").insertOne(new Document("cliente", nombreCliente)
-                                            .append("falla", diagnosticoFalla)
-                                            .append("fecha_cita", fechaCita)
-                                            .append("estado", "Pendiente"));
                         
-                        System.out.println(VERDE + "\n>> Cita guardada correctamente." + RESET);
+                        String fechaCita;
+                        while (true) {
+                            System.out.print("Fecha de la cita (AAAA/MM/DD): ");
+                            fechaCita = teclado.nextLine().trim();
+                            if (fechaCita.matches("\\d{4}/\\d{2}/\\d{2}")) break;
+                            System.out.println("   [!] Use el formato exacto de diagonal: AAAA/MM/DD");
+                        }
+
+                        Document existeCita = baseDeDatos.getCollection("citas").find(
+                            new Document("cliente", nombreCliente).append("estado", "Pendiente")
+                        ).first();
+
+                        if (existeCita != null) {
+                            System.out.println("\n   [!] Este cliente ya cuenta con una cita activa en el taller.");
+                        } else {
+                            baseDeDatos.getCollection("citas").insertOne(new Document("cliente", nombreCliente)
+                                                .append("falla", diagnosticoFalla)
+                                                .append("fecha_cita", fechaCita)
+                                                .append("estado", "Pendiente"));
+                            System.out.println(VERDE + "\n>> Cita guardada correctamente." + RESET);
+                        }
+                        
                         System.out.println("Presione ENTER para continuar...");
                         teclado.nextLine();
                     }
@@ -92,7 +113,7 @@ public class MenuPrincipal {
                             System.out.println("No hay citas pendientes.");
                         } else {
                             System.out.print("\nEscriba el NOMBRE del cliente a atender: ");
-                            String nombreIngresado = teclado.nextLine();
+                            String nombreIngresado = teclado.nextLine().trim();
 
                             Document encontrada = null;
                             for (Document cita : citasPendientes) {
@@ -109,7 +130,12 @@ public class MenuPrincipal {
                                 while (true) {
                                     System.out.println("Fecha registrada de cita: " + fechaCitaOriginal);
                                     System.out.print("Fecha de entrega (AAAA/MM/DD): ");
-                                    fechaFin = teclado.nextLine();
+                                    fechaFin = teclado.nextLine().trim();
+                                    
+                                    if (!fechaFin.matches("\\d{4}/\\d{2}/\\d{2}")) {
+                                        System.out.println("   [!] Formato invalido. Use AAAA/MM/DD");
+                                        continue;
+                                    }
                                     if (fechaFin.compareTo(fechaCitaOriginal) >= 0) break;
                                     System.out.println("   [!] La fecha no puede ser anterior a la cita."); 
                                 }
@@ -296,6 +322,10 @@ public class MenuPrincipal {
 
                                     } while (!navegacionPilas.equals("M"));
                                 }
+                                default -> {
+                                    System.out.println("\n   [!] Opcion invalida. Presione ENTER para volver...");
+                                    teclado.nextLine();
+                                }
                             }
 
                         } while (opcionCatalogo != 4);
@@ -303,6 +333,10 @@ public class MenuPrincipal {
                     case 5 -> {
                         System.out.println("\n" + AMARILLO + "Has salido del menú de gestión." + RESET);
                         System.out.println("Presione ENTER para finalizar la sesión...");
+                        teclado.nextLine();
+                    }
+                    default -> {
+                        System.out.println("\n   [!] Esa opcion no existe. Presione ENTER para volver...");
                         teclado.nextLine();
                     }
                 }
