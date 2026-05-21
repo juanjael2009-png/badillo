@@ -1,4 +1,7 @@
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Scanner;
 
@@ -17,9 +20,11 @@ public class MenuPrincipal {
     public static final String AMARILLO = "\u001B[33m";
     public static final String AZUL = "\u001B[34m";
     public static final String CIAN = "\u001B[36m";
+    public static final String ROJO = "\u001B[31m";
 
     public static void main(String[] args) {
         String direccionEnlace = "mongodb://localhost:27017";
+        DateTimeFormatter formatoFecha = DateTimeFormatter.ofPattern("yyyy/MM/dd");
 
         try (MongoClient clienteMongo = MongoClients.create(direccionEnlace);
              Scanner teclado = new Scanner(System.in)) {
@@ -42,11 +47,12 @@ public class MenuPrincipal {
                 System.out.println(AZUL + "==========================================" + RESET);
                 System.out.println(CIAN + "       SISTEMA DE GESTION DE TALLER       " + RESET);
                 System.out.println(AZUL + "==========================================" + RESET);
-                System.out.println("1. VENDEDOR: Crear Cita (Entrada)");
+                System.out.println("1. VENDEDOR: Crear Cita ");
                 System.out.println("2. MECANICO: Atender Citas Pendientes");
                 System.out.println("3. ADMIN: Registro de Clientes Frecuentes");
                 System.out.println("4. CATALOGO: Consultar Servicios y Refacciones");
-                System.out.println("5. SALIR");
+                System.out.println("5. MÓDULO ADM: Vaciar Base de Datos (Borrar Todo)");
+                System.out.println("6. SALIR");
                 System.out.print("\nSeleccione una opcion: ");
                 
                 if (!teclado.hasNextInt()) {
@@ -61,7 +67,7 @@ public class MenuPrincipal {
 
                 switch (opcionSeleccionada) {
                     case 1 -> {
-                        System.out.println(CIAN + "\n--- REGISTRO DE NUEVA CITA ---" + RESET);
+                        System.out.println(CIAN + "\n--- REGISTRO DE NUEVA CITA  ---" + RESET);
                         
                         String nombreCliente;
                         while (true) {
@@ -74,12 +80,23 @@ public class MenuPrincipal {
                         System.out.print("Diagnostico de falla: ");
                         String diagnosticoFalla = teclado.nextLine();
                         
-                        String fechaCita;
+                        String fechaCitaStr;
+                        LocalDate fechaCitaObjeto;
+                        LocalDate hoy = LocalDate.now();
+
                         while (true) {
                             System.out.print("Fecha de la cita (AAAA/MM/DD): ");
-                            fechaCita = teclado.nextLine().trim();
-                            if (fechaCita.matches("\\d{4}/\\d{2}/\\d{2}")) break;
-                            System.out.println("   [!] Use el formato exacto de diagonal: AAAA/MM/DD");
+                            fechaCitaStr = teclado.nextLine().trim();
+                            try {
+                                fechaCitaObjeto = LocalDate.parse(fechaCitaStr, formatoFecha);
+                                if (fechaCitaObjeto.isBefore(hoy)) {
+                                    System.out.println("   [!] No puedes agendar una cita en una fecha que ya paso.");
+                                    continue;
+                                }
+                                break;
+                            } catch (DateTimeParseException e) {
+                                System.out.println("   [!] Fecha invalida o formato incorrecto. Use AAAA/MM/DD (ej: " + hoy.format(formatoFecha) + ")");
+                            }
                         }
 
                         Document existeCita = baseDeDatos.getCollection("citas").find(
@@ -89,11 +106,21 @@ public class MenuPrincipal {
                         if (existeCita != null) {
                             System.out.println("\n   [!] Este cliente ya cuenta con una cita activa en el taller.");
                         } else {
-                            baseDeDatos.getCollection("citas").insertOne(new Document("cliente", nombreCliente)
+                            Document nuevaCita = new Document("cliente", nombreCliente)
                                                 .append("falla", diagnosticoFalla)
-                                                .append("fecha_cita", fechaCita)
-                                                .append("estado", "Pendiente"));
-                            System.out.println(VERDE + "\n>> Cita guardada correctamente." + RESET);
+                                                .append("fecha_cita", fechaCitaStr)
+                                                .append("estado", "Pendiente");
+                                                
+                            baseDeDatos.getCollection("citas").insertOne(nuevaCita);
+                            
+                            System.out.println(VERDE + "\n>> ¡datos guardados!" + RESET);
+                            System.out.println(AMARILLO + "------------------------------------------");
+                            System.out.println(" ID Generado: " + nuevaCita.getObjectId("_id"));
+                            System.out.println(" Cliente:     " + nuevaCita.getString("cliente"));
+                            System.out.println(" Falla:       " + nuevaCita.getString("falla"));
+                            System.out.println(" Fecha Cita:  " + nuevaCita.getString("fecha_cita"));
+                            System.out.println(" Estado:      " + nuevaCita.getString("estado"));
+                            System.out.println("------------------------------------------" + RESET);
                         }
                         
                         System.out.println("Presione ENTER para continuar...");
@@ -125,26 +152,35 @@ public class MenuPrincipal {
 
                             if (encontrada != null) {
                                 String nombreBaseDatos = encontrada.getString("cliente");
-                                String fechaCitaOriginal = encontrada.getString("fecha_cita");
-                                String fechaFin;
+                                String fechaCitaOriginalStr = encontrada.getString("fecha_cita");
+                                LocalDate fechaCitaOriginal = LocalDate.parse(fechaCitaOriginalStr, formatoFecha);
+                                
+                                String fechaFinStr;
+                                LocalDate fechaFinObjeto;
+
                                 while (true) {
-                                    System.out.println("Fecha registrada de cita: " + fechaCitaOriginal);
+                                    System.out.println("Fecha registrada de cita: " + fechaCitaOriginalStr);
                                     System.out.print("Fecha de entrega (AAAA/MM/DD): ");
-                                    fechaFin = teclado.nextLine().trim();
+                                    fechaFinStr = teclado.nextLine().trim();
                                     
-                                    if (!fechaFin.matches("\\d{4}/\\d{2}/\\d{2}")) {
-                                        System.out.println("   [!] Formato invalido. Use AAAA/MM/DD");
-                                        continue;
+                                    try {
+                                        fechaFinObjeto = LocalDate.parse(fechaFinStr, formatoFecha);
+                                        
+                                        if (fechaFinObjeto.isBefore(fechaCitaOriginal)) {
+                                            System.out.println("   [!] La fecha de entrega no puede ser anterior a la fecha de la cita.");
+                                            continue;
+                                        }
+                                        break;
+                                    } catch (DateTimeParseException e) {
+                                        System.out.println("   [!] Fecha invalida o formato incorrecto. Use AAAA/MM/DD");
                                     }
-                                    if (fechaFin.compareTo(fechaCitaOriginal) >= 0) break;
-                                    System.out.println("   [!] La fecha no puede ser anterior a la cita."); 
                                 }
                                 System.out.print("¿Que reparacion se le hizo finalmente?: ");
                                 String reparacion = teclado.nextLine();
 
                                 baseDeDatos.getCollection("reportes").insertOne(new Document("cliente", nombreBaseDatos)
                                                             .append("trabajo", reparacion)
-                                                            .append("fecha", fechaFin));
+                                                            .append("fecha", fechaFinStr));
                                 
                                 baseDeDatos.getCollection("citas").updateOne(
                                     new Document("cliente", nombreBaseDatos).append("estado", "Pendiente"), 
@@ -168,7 +204,7 @@ public class MenuPrincipal {
                         
                         boolean hayFrecuentes = false;
                         for (Document res : resultados) {
-                            System.out.println("⭐ " + VERDE + res.getString("_id") + RESET + " | Visitas: " + res.getInteger("total"));
+                            System.out.println("! " + VERDE + res.getString("_id") + RESET + " | Visitas: " + res.getInteger("total"));
                             hayFrecuentes = true;
                         }
                         if (!hayFrecuentes) System.out.println("No hay clientes frecuentes registrados.");
@@ -191,8 +227,8 @@ public class MenuPrincipal {
                             System.out.println(AZUL + "==========================================" + RESET);
                             System.out.println(CIAN + "           CATALOGO DE SECCIONES          " + RESET);
                             System.out.println(AZUL + "==========================================" + RESET);
-                            System.out.println("1. SECCION: Llantas (Marcas y Medidas)");
-                            System.out.println("2. SECCION: Motores (Nuevos y Reconstruidos)");
+                            System.out.println("1. SECCION: Llantas ");
+                            System.out.println("2. SECCION: Motores ");
                             System.out.println("3. SECCION: Pilas y Baterías");
                             System.out.println("4. REGRESAR AL MENÚ PRINCIPAL");
                             System.out.print("\nSeleccione una sección: ");
@@ -322,6 +358,8 @@ public class MenuPrincipal {
 
                                     } while (!navegacionPilas.equals("M"));
                                 }
+                                case 4 -> {
+                                }
                                 default -> {
                                     System.out.println("\n   [!] Opcion invalida. Presione ENTER para volver...");
                                     teclado.nextLine();
@@ -331,6 +369,22 @@ public class MenuPrincipal {
                         } while (opcionCatalogo != 4);
                     }
                     case 5 -> {
+                        System.out.println(ROJO + "\n--- ELIMINACIÓN MASIVA DE DATOS ---" + RESET);
+                        System.out.println("Esta acción borrará todas las citas y reportes de la base de datos.");
+                        System.out.print("¿Está seguro de que desea continuar? (S/N): ");
+                        String respuestaBorrado = teclado.nextLine().trim().toUpperCase();
+
+                        if (respuestaBorrado.equals("S")) {
+                            baseDeDatos.getCollection("citas").deleteMany(new Document());
+                            baseDeDatos.getCollection("reportes").deleteMany(new Document());
+                            System.out.println(VERDE + "\n>> Base de datos limpiada por completo con éxito." + RESET);
+                        } else {
+                            System.out.println("\n>> Operación cancelada. No se borró ningún dato.");
+                        }
+                        System.out.println("Presione ENTER para continuar...");
+                        teclado.nextLine();
+                    }
+                    case 6 -> {
                         System.out.println("\n" + AMARILLO + "Has salido del menú de gestión." + RESET);
                         System.out.println("Presione ENTER para finalizar la sesión...");
                         teclado.nextLine();
@@ -340,7 +394,7 @@ public class MenuPrincipal {
                         teclado.nextLine();
                     }
                 }
-            } while (opcionSeleccionada != 5);
+            } while (opcionSeleccionada != 6);
         } catch (Exception error) {
         }
     }
