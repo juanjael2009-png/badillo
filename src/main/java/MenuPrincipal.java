@@ -44,9 +44,17 @@ public class MenuPrincipal {
                     for (int i = 0; i < 50; i++) System.out.println();
                 }
 
-                System.out.println(AZUL + "==========================================" + RESET);
-                System.out.println(CIAN + "       SISTEMA DE GESTION DE TALLER       " + RESET);
-                System.out.println(AZUL + "==========================================" + RESET);
+                System.out.println(AZUL + "==========================================================================" + RESET);
+                System.out.println(CIAN + "                       SISTEMA DE GESTION DE TALLER                       " + RESET);
+                System.out.println(AZUL + "==========================================================================" + RESET);
+                
+                // Los 3 autos deportivos ordenados horizontalmente
+                System.out.println(AMARILLO + "      ____________               ______               ______" + RESET);
+                System.out.println(AMARILLO + "   ____//__][__\\\\___\\         ____//__][_\\        ______//__][_\\__" + RESET);
+                System.out.println(AMARILLO + "  (o _ |  -|   _   o|        [o _ |  -| _ \\      /o _   |  -| _   \\" + RESET);
+                System.out.println(AMARILLO + "   `(_)-------(_)---'         `(_)-----(_)-'     `-(_)-------(_)---'" + RESET);
+                System.out.println(AZUL + "--------------------------------------------------------------------------" + RESET);
+
                 System.out.println("1. VENDEDOR: Crear Cita ");
                 System.out.println("2. MECANICO: Atender Citas Pendientes");
                 System.out.println("3. ADMIN: Registro de Clientes Frecuentes");
@@ -67,7 +75,7 @@ public class MenuPrincipal {
 
                 switch (opcionSeleccionada) {
                     case 1 -> {
-                        System.out.println(CIAN + "\n--- REGISTRO DE NUEVA CITA  ---" + RESET);
+                        System.out.println(CIAN + "\n--- REGISTRO DE NUEVA CITA   ---" + RESET);
                         
                         String nombreCliente;
                         while (true) {
