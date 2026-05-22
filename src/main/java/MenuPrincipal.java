@@ -59,7 +59,7 @@ public class MenuPrincipal {
                 System.out.println("2. MECANICO: Atender Citas Pendientes");
                 System.out.println("3. ADMIN: Registro de Clientes Frecuentes");
                 System.out.println("4. CATALOGO: Consultar Servicios y Refacciones");
-                System.out.println("5. MÓDULO ADM: Vaciar Base de Datos (Borrar Todo)");
+                System.out.println("5. MÓDULO ADM: Menú de Borrado y Limpieza");
                 System.out.println("6. SALIR");
                 System.out.print("\nSeleccione una opcion: ");
                 
@@ -367,6 +367,7 @@ public class MenuPrincipal {
                                     } while (!navegacionPilas.equals("M"));
                                 }
                                 case 4 -> {
+                                    // Regresar al menú principal sin desplegar advertencias
                                 }
                                 default -> {
                                     System.out.println("\n   [!] Opcion invalida. Presione ENTER para volver...");
@@ -377,20 +378,132 @@ public class MenuPrincipal {
                         } while (opcionCatalogo != 4);
                     }
                     case 5 -> {
-                        System.out.println(ROJO + "\n--- ELIMINACIÓN MASIVA DE DATOS ---" + RESET);
-                        System.out.println("Esta acción borrará todas las citas y reportes de la base de datos.");
-                        System.out.print("¿Está seguro de que desea continuar? (S/N): ");
-                        String respuestaBorrado = teclado.nextLine().trim().toUpperCase();
+                        int opcionBorrado;
+                        do {
+                            try {
+                                if (System.getProperty("os.name").contains("Windows")) {
+                                    new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
+                                } else {
+                                    System.out.print("\033[H\033[2J");
+                                    System.out.flush();
+                                }
+                            } catch (IOException | InterruptedException e) {}
 
-                        if (respuestaBorrado.equals("S")) {
-                            baseDeDatos.getCollection("citas").deleteMany(new Document());
-                            baseDeDatos.getCollection("reportes").deleteMany(new Document());
-                            System.out.println(VERDE + "\n>> Base de datos limpiada por completo con éxito." + RESET);
-                        } else {
-                            System.out.println("\n>> Operación cancelada. No se borró ningún dato.");
-                        }
-                        System.out.println("Presione ENTER para continuar...");
-                        teclado.nextLine();
+                            System.out.println(ROJO + "==========================================" + RESET);
+                            System.out.println(ROJO + "        MÓDULO ADM: MENÚ DE LIMPIEZA      " + RESET);
+                            System.out.println(ROJO + "==========================================" + RESET);
+                            System.out.println("1. Gestión de Borrado: CITAS");
+                            System.out.println("2. Gestión de Borrado: REPORTES");
+                            System.out.println("3. VACIAR TODO (Borrar base de datos completa)");
+                            System.out.println("4. REGRESAR AL MENÚ PRINCIPAL");
+                            System.out.print("\nSeleccione una opción: ");
+
+                            if (!teclado.hasNextInt()) {
+                                teclado.next(); teclado.nextLine();
+                                opcionBorrado = 0; continue;
+                            }
+                            opcionBorrado = teclado.nextInt();
+                            teclado.nextLine();
+
+                            switch (opcionBorrado) {
+                                case 1 -> {
+                                    System.out.println(CIAN + "\n--- REGISTROS ACTUALES EN CITAS ---" + RESET);
+                                    FindIterable<Document> listaCitas = baseDeDatos.getCollection("citas").find();
+                                    boolean tieneCitas = false;
+                                    for (Document doc : listaCitas) {
+                                        System.out.println("- Cliente: [" + AMARILLO + doc.getString("cliente") + RESET + "] | Falla: " + doc.getString("falla") + " | Estado: " + doc.getString("estado"));
+                                        tieneCitas = true;
+                                    }
+                                    if (!tieneCitas) {
+                                        System.out.println("No hay citas registradas en la base de datos.");
+                                        System.out.println("Presione ENTER para continuar...");
+                                        teclado.nextLine();
+                                        break;
+                                    }
+                                    System.out.println("\n1. Borrar una cita específica (Por nombre de cliente)");
+                                    System.out.println("2. Vaciar por completo la colección de citas");
+                                    System.out.print("Seleccione el método de borrado: ");
+                                    String subOpcion = teclado.nextLine().trim();
+
+                                    if (subOpcion.equals("1")) {
+                                        System.out.print("Ingrese el NOMBRE exacto del cliente a eliminar: ");
+                                        String clienteBorrar = teclado.nextLine().trim();
+                                        var result = baseDeDatos.getCollection("citas").deleteMany(new Document("cliente", clienteBorrar));
+                                        if (result.getDeletedCount() > 0) {
+                                            System.out.println(VERDE + "\n>> Cita(s) de '" + clienteBorrar + "' eliminada(s) con éxito." + RESET);
+                                        } else {
+                                            System.out.println(ROJO + "\n>> No se encontró ningún registro con ese nombre." + RESET);
+                                        }
+                                    } else if (subOpcion.equals("2")) {
+                                        System.out.print(ROJO + "¿Seguro que desea VACIAR TODAS las citas? (S/N): " + RESET);
+                                        if (teclado.nextLine().trim().equalsIgnoreCase("S")) {
+                                            baseDeDatos.getCollection("citas").deleteMany(new Document());
+                                            System.out.println(VERDE + "\n>> Colección de CITAS vaciada por completo." + RESET);
+                                        }
+                                    }
+                                    System.out.println("Presione ENTER para continuar...");
+                                    teclado.nextLine();
+                                }
+                                case 2 -> {
+                                    System.out.println(CIAN + "\n--- REGISTROS ACTUALES EN REPORTES ---" + RESET);
+                                    FindIterable<Document> listaReportes = baseDeDatos.getCollection("reportes").find();
+                                    boolean tieneReportes = false;
+                                    for (Document doc : listaReportes) {
+                                        System.out.println("- Cliente: [" + AMARILLO + doc.getString("cliente") + RESET + "] | Trabajo: " + doc.getString("trabajo") + " | Fecha: " + doc.getString("fecha"));
+                                        tieneReportes = true;
+                                    }
+                                    if (!tieneReportes) {
+                                        System.out.println("No hay reportes finalizados en la base de datos.");
+                                        System.out.println("Presione ENTER para continuar...");
+                                        teclado.nextLine();
+                                        break;
+                                    }
+                                    System.out.println("\n1. Borrar un reporte específico (Por nombre de cliente)");
+                                    System.out.println("2. Vaciar por completo la colección de reportes");
+                                    System.out.print("Seleccione el método de borrado: ");
+                                    String subOpcion = teclado.nextLine().trim();
+
+                                    if (subOpcion.equals("1")) {
+                                        System.out.print("Ingrese el NOMBRE exacto del cliente a eliminar: ");
+                                        String clienteBorrar = teclado.nextLine().trim();
+                                        var result = baseDeDatos.getCollection("reportes").deleteMany(new Document("cliente", clienteBorrar));
+                                        if (result.getDeletedCount() > 0) {
+                                            System.out.println(VERDE + "\n>> Reporte(s) de '" + clienteBorrar + "' eliminado(s) con éxito." + RESET);
+                                        } else {
+                                            System.out.println(ROJO + "\n>> No se encontró ningún registro con ese nombre." + RESET);
+                                        }
+                                    } else if (subOpcion.equals("2")) {
+                                        System.out.print(ROJO + "¿Seguro que desea VACIAR TODOS los reportes? (S/N): " + RESET);
+                                        if (teclado.nextLine().trim().equalsIgnoreCase("S")) {
+                                            baseDeDatos.getCollection("reportes").deleteMany(new Document());
+                                            System.out.println(VERDE + "\n>> Colección de REPORTES vaciada por completo." + RESET);
+                                        }
+                                    }
+                                    System.out.println("Presione ENTER para continuar...");
+                                    teclado.nextLine();
+                                }
+                                case 3 -> {
+                                    System.out.print(ROJO + "\n¿Está completamente seguro de borrar la BASE DE DATOS COMPLETA? (S/N): " + RESET);
+                                    String confirmar = teclado.nextLine().trim().toUpperCase();
+                                    if (confirmar.equals("S")) {
+                                        baseDeDatos.getCollection("citas").deleteMany(new Document());
+                                        baseDeDatos.getCollection("reportes").deleteMany(new Document());
+                                        System.out.println(VERDE + "\n>> ¡Base de datos completamente limpia!" + RESET);
+                                    } else {
+                                        System.out.println("\n>> Operación cancelada.");
+                                    }
+                                    System.out.println("Presione ENTER para continuar...");
+                                    teclado.nextLine();
+                                }
+                                case 4 -> {
+                                }
+                                default -> {
+                                    System.out.println("\n   [!] Opción inválida dentro del menú de borrado.");
+                                    System.out.println("Presione ENTER para continuar...");
+                                    teclado.nextLine();
+                                }
+                            }
+                        } while (opcionBorrado != 4);
                     }
                     case 6 -> {
                         System.out.println("\n" + AMARILLO + "Has salido del menú de gestión." + RESET);
@@ -398,7 +511,8 @@ public class MenuPrincipal {
                         teclado.nextLine();
                     }
                     default -> {
-                        System.out.println("\n   [!] Esa opcion no existe. Presione ENTER para volver...");
+                        System.out.println("\n   [!] Esa opcion no existe en el menu principal.");
+                        System.out.println("Presione ENTER para continuar...");
                         teclado.nextLine();
                     }
                 }
