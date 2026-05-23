@@ -49,7 +49,7 @@ public class MenuPrincipal {
                 System.out.println(AZUL + "==========================================================================" + RESET);
                 
                 // Los 3 autos deportivos ordenados horizontalmente
-                System.out.println(AMARILLO + "      ____________               ______               ______" + RESET);
+                System.out.println(AMARILLO + "        ____________               ______               ______" + RESET);
                 System.out.println(AMARILLO + "   ____//__][__\\\\___\\         ____//__][_\\        ______//__][_\\__" + RESET);
                 System.out.println(AMARILLO + "  (o _ |  -|   _   o|        [o _ |  -| _ \\      /o _   |  -| _   \\" + RESET);
                 System.out.println(AMARILLO + "   `(_)-------(_)---'         `(_)-----(_)-'     `-(_)-------(_)---'" + RESET);
