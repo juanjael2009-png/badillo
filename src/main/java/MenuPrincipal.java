@@ -48,8 +48,7 @@ public class MenuPrincipal {
                 System.out.println(CIAN + "                       SISTEMA DE GESTION DE TALLER                       " + RESET);
                 System.out.println(AZUL + "==========================================================================" + RESET);
                 
-                // Los 3 autos deportivos ordenados horizontalmente
-                System.out.println(AMARILLO + "        ____________               ______               ______" + RESET);
+                System.out.println(AMARILLO + "      ____________               ______               ______" + RESET);
                 System.out.println(AMARILLO + "   ____//__][__\\\\___\\         ____//__][_\\        ______//__][_\\__" + RESET);
                 System.out.println(AMARILLO + "  (o _ |  -|   _   o|        [o _ |  -| _ \\      /o _   |  -| _   \\" + RESET);
                 System.out.println(AMARILLO + "   `(_)-------(_)---'         `(_)-----(_)-'     `-(_)-------(_)---'" + RESET);
@@ -59,7 +58,7 @@ public class MenuPrincipal {
                 System.out.println("2. MECANICO: Atender Citas Pendientes");
                 System.out.println("3. ADMIN: Registro de Clientes Frecuentes");
                 System.out.println("4. CATALOGO: Consultar Servicios y Refacciones");
-                System.out.println("5. MÓDULO ADM: Menú de Borrado y Limpieza");
+                System.out.println("5. MÓDULO ADM: Control de Cambios, Borrado y Limpieza");
                 System.out.println("6. SALIR");
                 System.out.print("\nSeleccione una opcion: ");
                 
@@ -367,7 +366,6 @@ public class MenuPrincipal {
                                     } while (!navegacionPilas.equals("M"));
                                 }
                                 case 4 -> {
-                                    // Regresar al menú principal sin desplegar advertencias
                                 }
                                 default -> {
                                     System.out.println("\n   [!] Opcion invalida. Presione ENTER para volver...");
@@ -390,12 +388,13 @@ public class MenuPrincipal {
                             } catch (IOException | InterruptedException e) {}
 
                             System.out.println(ROJO + "==========================================" + RESET);
-                            System.out.println(ROJO + "        MÓDULO ADM: MENÚ DE LIMPIEZA      " + RESET);
+                            System.out.println(ROJO + "        MÓDULO ADM: CAMBIOS Y LIMPIEZA    " + RESET);
                             System.out.println(ROJO + "==========================================" + RESET);
-                            System.out.println("1. Gestión de Borrado: CITAS");
-                            System.out.println("2. Gestión de Borrado: REPORTES");
-                            System.out.println("3. VACIAR TODO (Borrar base de datos completa)");
-                            System.out.println("4. REGRESAR AL MENÚ PRINCIPAL");
+                            System.out.println("1. MODIFICAR: Editar datos de una cita");
+                            System.out.println("2. ELIMINAR: Borrar Cita Específica");
+                            System.out.println("3. ELIMINAR: Borrar Reporte Específico");
+                            System.out.println("4. VACIAR TODO (Borrar base de datos completa)");
+                            System.out.println("5. REGRESAR AL MENÚ PRINCIPAL");
                             System.out.print("\nSeleccione una opción: ");
 
                             if (!teclado.hasNextInt()) {
@@ -407,82 +406,154 @@ public class MenuPrincipal {
 
                             switch (opcionBorrado) {
                                 case 1 -> {
-                                    System.out.println(CIAN + "\n--- REGISTROS ACTUALES EN CITAS ---" + RESET);
-                                    FindIterable<Document> listaCitas = baseDeDatos.getCollection("citas").find();
-                                    boolean tieneCitas = false;
-                                    for (Document doc : listaCitas) {
-                                        System.out.println("- Cliente: [" + AMARILLO + doc.getString("cliente") + RESET + "] | Falla: " + doc.getString("falla") + " | Estado: " + doc.getString("estado"));
-                                        tieneCitas = true;
+                                    System.out.println(CIAN + "\n--- CITAS DISPONIBLES PARA MODIFICAR ---" + RESET);
+                                    FindIterable<Document> todasLasCitas = baseDeDatos.getCollection("citas").find(new Document("estado", "Pendiente"));
+                                    
+                                    boolean hayCitasActivas = false;
+                                    for (Document cita : todasLasCitas) {
+                                        System.out.println(" • " + AMARILLO + cita.getString("cliente") + RESET + " (Falla: " + cita.getString("falla") + ")");
+                                        hayCitasActivas = true;
                                     }
-                                    if (!tieneCitas) {
-                                        System.out.println("No hay citas registradas en la base de datos.");
-                                        System.out.println("Presione ENTER para continuar...");
-                                        teclado.nextLine();
-                                        break;
-                                    }
-                                    System.out.println("\n1. Borrar una cita específica (Por nombre de cliente)");
-                                    System.out.println("2. Vaciar por completo la colección de citas");
-                                    System.out.print("Seleccione el método de borrado: ");
-                                    String subOpcion = teclado.nextLine().trim();
 
-                                    if (subOpcion.equals("1")) {
-                                        System.out.print("Ingrese el NOMBRE exacto del cliente a eliminar: ");
-                                        String clienteBorrar = teclado.nextLine().trim();
-                                        var result = baseDeDatos.getCollection("citas").deleteMany(new Document("cliente", clienteBorrar));
-                                        if (result.getDeletedCount() > 0) {
-                                            System.out.println(VERDE + "\n>> Cita(s) de '" + clienteBorrar + "' eliminada(s) con éxito." + RESET);
-                                        } else {
-                                            System.out.println(ROJO + "\n>> No se encontró ningún registro con ese nombre." + RESET);
+                                    if (!hayCitasActivas) {
+                                        System.out.println("No hay ninguna cita activa registrada en este momento.");
+                                        System.out.println("\nPresione ENTER para continuar...");
+                                        teclado.nextLine();
+                                        opcionBorrado = 5;
+                                        continue;
+                                    }
+
+                                    System.out.println("----------------------------------------------------");
+                                    System.out.print("Ingrese el NOMBRE del cliente cuya cita quiere editar: ");
+                                    String clienteEditar = teclado.nextLine().trim();
+
+                                    Document citaEncontrada = baseDeDatos.getCollection("citas").find(
+                                        new Document("cliente", clienteEditar).append("estado", "Pendiente")
+                                    ).first();
+
+                                    if (citaEncontrada != null) {
+                                        System.out.println("\nCita encontrada:");
+                                        System.out.println("1. Nombre del Dueño: [" + citaEncontrada.getString("cliente") + "]");
+                                        System.out.println("2. Diagnóstico Falla: [" + citaEncontrada.getString("falla") + "]");
+                                        System.out.println("3. Fecha de la Cita: [" + citaEncontrada.getString("fecha_cita") + "]");
+                                        System.out.print("\n¿Qué dato desea modificar? (1-3): ");
+                                        String campoSeleccionado = teclado.nextLine().trim();
+
+                                        switch (campoSeleccionado) {
+                                            case "1" -> {
+                                                System.out.print("Ingrese el NUEVO nombre del dueño: ");
+                                                String nuevoNombre = teclado.nextLine().trim();
+                                                if (!nuevoNombre.isEmpty()) {
+                                                    baseDeDatos.getCollection("citas").updateOne(
+                                                        new Document("_id", citaEncontrada.getObjectId("_id")),
+                                                        new Document("$set", new Document("cliente", nuevoNombre))
+                                                    );
+                                                    System.out.println(VERDE + ">> Nombre actualizado con éxito." + RESET);
+                                                } else {
+                                                    System.out.println(ROJO + ">> Operación cancelada. El nombre no puede ser vacío." + RESET);
+                                                }
+                                            }
+                                            case "2" -> {
+                                                System.out.print("Ingrese el NUEVO diagnóstico de falla: ");
+                                                String nuevaFalla = teclado.nextLine().trim();
+                                                baseDeDatos.getCollection("citas").updateOne(
+                                                    new Document("_id", citaEncontrada.getObjectId("_id")),
+                                                    new Document("$set", new Document("falla", nuevaFalla))
+                                                );
+                                                System.out.println(VERDE + ">> Diagnóstico modificado con éxito." + RESET);
+                                            }
+                                            case "3" -> {
+                                                String nuevaFechaStr;
+                                                LocalDate hoy = LocalDate.now();
+                                                while (true) {
+                                                    System.out.print("Ingrese la NUEVA fecha (AAAA/MM/DD): ");
+                                                    nuevaFechaStr = teclado.nextLine().trim();
+                                                    try {
+                                                        LocalDate nuevaFechaObj = LocalDate.parse(nuevaFechaStr, formatoFecha);
+                                                        if (nuevaFechaObj.isBefore(hoy)) {
+                                                            System.out.println("   [!] No puedes cambiar la cita a una fecha pasada.");
+                                                            continue;
+                                                        }
+                                                        break;
+                                                    } catch (DateTimeParseException e) {
+                                                        System.out.println("   [!] Formato incorrecto. Intente de nuevo.");
+                                                    }
+                                                }
+                                                baseDeDatos.getCollection("citas").updateOne(
+                                                    new Document("_id", citaEncontrada.getObjectId("_id")),
+                                                    new Document("$set", new Document("fecha_cita", nuevaFechaStr))
+                                                );
+                                                System.out.println(VERDE + ">> Fecha de cita re-programada con éxito." + RESET);
+                                            }
+                                            default -> System.out.println(ROJO + ">> Opción de campo inválida." + RESET);
                                         }
-                                    } else if (subOpcion.equals("2")) {
-                                        System.out.print(ROJO + "¿Seguro que desea VACIAR TODAS las citas? (S/N): " + RESET);
-                                        if (teclado.nextLine().trim().equalsIgnoreCase("S")) {
-                                            baseDeDatos.getCollection("citas").deleteMany(new Document());
-                                            System.out.println(VERDE + "\n>> Colección de CITAS vaciada por completo." + RESET);
-                                        }
+                                    } else {
+                                        System.out.println(ROJO + "\n>> No se encontró ninguna cita PENDIENTE activa para el cliente '" + clienteEditar + "'." + RESET);
                                     }
                                     System.out.println("Presione ENTER para continuar...");
                                     teclado.nextLine();
                                 }
                                 case 2 -> {
-                                    System.out.println(CIAN + "\n--- REGISTROS ACTUALES EN REPORTES ---" + RESET);
-                                    FindIterable<Document> listaReportes = baseDeDatos.getCollection("reportes").find();
-                                    boolean tieneReportes = false;
-                                    for (Document doc : listaReportes) {
-                                        System.out.println("- Cliente: [" + AMARILLO + doc.getString("cliente") + RESET + "] | Trabajo: " + doc.getString("trabajo") + " | Fecha: " + doc.getString("fecha"));
-                                        tieneReportes = true;
+                                    System.out.println(CIAN + "\n--- CITAS DISPONIBLES EN EL SISTEMA ---" + RESET);
+                                    FindIterable<Document> todasLasCitas = baseDeDatos.getCollection("citas").find();
+                                    
+                                    boolean hayCitasParaBorrar = false;
+                                    for (Document cita : todasLasCitas) {
+                                        System.out.println(" • " + AMARILLO + cita.getString("cliente") + RESET + " (Falla: " + cita.getString("falla") + " | Estado: " + cita.getString("estado") + ")");
+                                        hayCitasParaBorrar = true;
                                     }
-                                    if (!tieneReportes) {
-                                        System.out.println("No hay reportes finalizados en la base de datos.");
-                                        System.out.println("Presione ENTER para continuar...");
-                                        teclado.nextLine();
-                                        break;
-                                    }
-                                    System.out.println("\n1. Borrar un reporte específico (Por nombre de cliente)");
-                                    System.out.println("2. Vaciar por completo la colección de reportes");
-                                    System.out.print("Seleccione el método de borrado: ");
-                                    String subOpcion = teclado.nextLine().trim();
 
-                                    if (subOpcion.equals("1")) {
-                                        System.out.print("Ingrese el NOMBRE exacto del cliente a eliminar: ");
-                                        String clienteBorrar = teclado.nextLine().trim();
-                                        var result = baseDeDatos.getCollection("reportes").deleteMany(new Document("cliente", clienteBorrar));
-                                        if (result.getDeletedCount() > 0) {
-                                            System.out.println(VERDE + "\n>> Reporte(s) de '" + clienteBorrar + "' eliminado(s) con éxito." + RESET);
-                                        } else {
-                                            System.out.println(ROJO + "\n>> No se encontró ningún registro con ese nombre." + RESET);
-                                        }
-                                    } else if (subOpcion.equals("2")) {
-                                        System.out.print(ROJO + "¿Seguro que desea VACIAR TODOS los reportes? (S/N): " + RESET);
-                                        if (teclado.nextLine().trim().equalsIgnoreCase("S")) {
-                                            baseDeDatos.getCollection("reportes").deleteMany(new Document());
-                                            System.out.println(VERDE + "\n>> Colección de REPORTES vaciada por completo." + RESET);
-                                        }
+                                    if (!hayCitasParaBorrar) {
+                                        System.out.println("No hay ninguna cita registrada en la base de datos.");
+                                        System.out.println("\nPresione ENTER para continuar...");
+                                        teclado.nextLine();
+                                        opcionBorrado = 5;
+                                        continue;
+                                    }
+
+                                    System.out.println("----------------------------------------------------");
+                                    System.out.print("Ingrese el NOMBRE exacto del cliente a eliminar: ");
+                                    String clienteBorrar = teclado.nextLine().trim();
+                                    var result = baseDeDatos.getCollection("citas").deleteMany(new Document("cliente", clienteBorrar));
+                                    if (result.getDeletedCount() > 0) {
+                                        System.out.println(VERDE + "\n>> Cita(s) de '" + clienteBorrar + "' eliminada(s) con éxito." + RESET);
+                                    } else {
+                                        System.out.println(ROJO + "\n>> No se encontró ningún registro con ese nombre." + RESET);
                                     }
                                     System.out.println("Presione ENTER para continuar...");
                                     teclado.nextLine();
                                 }
                                 case 3 -> {
+                                    System.out.println(CIAN + "\n--- REPORTES DISPONIBLES EN EL SISTEMA ---" + RESET);
+                                    FindIterable<Document> todosLosReportes = baseDeDatos.getCollection("reportes").find();
+                                    
+                                    boolean hayReportesParaBorrar = false;
+                                    for (Document reporte : todosLosReportes) {
+                                        System.out.println(" • " + AMARILLO + reporte.getString("cliente") + RESET + " (Trabajo: " + reporte.getString("trabajo") + " | Fecha: " + reporte.getString("fecha") + ")");
+                                        hayReportesParaBorrar = true;
+                                    }
+
+                                    if (!hayReportesParaBorrar) {
+                                        System.out.println("No hay ningún reporte histórico registrado en la base de datos.");
+                                        System.out.println("\nPresione ENTER para continuar...");
+                                        teclado.nextLine();
+                                        opcionBorrado = 5;
+                                        continue;
+                                    }
+
+                                    System.out.println("----------------------------------------------------");
+                                    System.out.print("Ingrese el NOMBRE exacto del cliente a eliminar de reportes: ");
+                                    String clienteBorrar = teclado.nextLine().trim();
+                                    var result = baseDeDatos.getCollection("reportes").deleteMany(new Document("cliente", clienteBorrar));
+                                    if (result.getDeletedCount() > 0) {
+                                        System.out.println(VERDE + "\n>> Reporte(s) de '" + clienteBorrar + "' eliminado(s) con éxito." + RESET);
+                                    } else {
+                                        System.out.println(ROJO + "\n>> No se encontró ningún reporte con ese nombre." + RESET);
+                                    }
+                                    System.out.println("Presione ENTER para continuar...");
+                                    teclado.nextLine();
+                                }
+                                case 4 -> {
                                     System.out.print(ROJO + "\n¿Está completamente seguro de borrar la BASE DE DATOS COMPLETA? (S/N): " + RESET);
                                     String confirmar = teclado.nextLine().trim().toUpperCase();
                                     if (confirmar.equals("S")) {
@@ -495,15 +566,15 @@ public class MenuPrincipal {
                                     System.out.println("Presione ENTER para continuar...");
                                     teclado.nextLine();
                                 }
-                                case 4 -> {
+                                case 5 -> {
                                 }
                                 default -> {
-                                    System.out.println("\n   [!] Opción inválida dentro del menú de borrado.");
+                                    System.out.println("\n   [!] Opción inválida dentro del menú administrativo.");
                                     System.out.println("Presione ENTER para continuar...");
                                     teclado.nextLine();
                                 }
                             }
-                        } while (opcionBorrado != 4);
+                        } while (opcionBorrado != 5);
                     }
                     case 6 -> {
                         System.out.println("\n" + AMARILLO + "Has salido del menú de gestión." + RESET);
