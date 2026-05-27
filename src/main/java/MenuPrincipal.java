@@ -48,7 +48,8 @@ public class MenuPrincipal {
                 System.out.println(CIAN + "                       SISTEMA DE GESTION DE TALLER                       " + RESET);
                 System.out.println(AZUL + "==========================================================================" + RESET);
                 
-                System.out.println(AMARILLO + "      ____________               ______               ______" + RESET);
+                // === CARROS EN MENÚ PRINCIPAL ===
+                System.out.println(AMARILLO + "        ____________               ______                ______" + RESET);
                 System.out.println(AMARILLO + "   ____//__][__\\\\___\\         ____//__][_\\        ______//__][_\\__" + RESET);
                 System.out.println(AMARILLO + "  (o _ |  -|   _   o|        [o _ |  -| _ \\      /o _   |  -| _   \\" + RESET);
                 System.out.println(AMARILLO + "   `(_)-------(_)---'         `(_)-----(_)-'     `-(_)-------(_)---'" + RESET);
@@ -387,9 +388,20 @@ public class MenuPrincipal {
                                 }
                             } catch (IOException | InterruptedException e) {}
 
+                            // === EL BOTE DE BASURA AHORA ADORNA EL MÓDULO ADM (COMO LOS CARRITOS) ===
                             System.out.println(ROJO + "==========================================" + RESET);
                             System.out.println(ROJO + "        MÓDULO ADM: CAMBIOS Y LIMPIEZA    " + RESET);
                             System.out.println(ROJO + "==========================================" + RESET);
+                            System.out.println(ROJO + "              __________               " + RESET);
+                            System.out.println(ROJO + "            /____________\\           " + RESET);
+                            System.out.println(ROJO + "          (________________)           " + RESET);
+                            System.out.println(ROJO + "           |  ||  ||  ||  |           " + RESET);
+                            System.out.println(ROJO + "           |  ||  ||  ||  |           " + RESET);
+                            System.out.println(ROJO + "           |  ||  ||  ||  |           " + RESET);
+                            System.out.println(ROJO + "           |  ||  ||  ||  |           " + RESET);
+                            System.out.println(ROJO + "           |  ||  ||  ||  |           " + RESET);
+                            System.out.println(ROJO + "           \\______________/           " + RESET);
+                            System.out.println(ROJO + "------------------------------------------" + RESET);
                             System.out.println("1. MODIFICAR: Editar datos de una cita");
                             System.out.println("2. ELIMINAR: Borrar Cita Específica");
                             System.out.println("3. ELIMINAR: Borrar Reporte Específico");
@@ -419,7 +431,6 @@ public class MenuPrincipal {
                                         System.out.println("No hay ninguna cita activa registrada en este momento.");
                                         System.out.println("\nPresione ENTER para continuar...");
                                         teclado.nextLine();
-                                        opcionBorrado = 5;
                                         continue;
                                     }
 
@@ -507,7 +518,6 @@ public class MenuPrincipal {
                                         System.out.println("No hay ninguna cita registrada en la base de datos.");
                                         System.out.println("\nPresione ENTER para continuar...");
                                         teclado.nextLine();
-                                        opcionBorrado = 5;
                                         continue;
                                     }
 
@@ -537,7 +547,6 @@ public class MenuPrincipal {
                                         System.out.println("No hay ningún reporte histórico registrado en la base de datos.");
                                         System.out.println("\nPresione ENTER para continuar...");
                                         teclado.nextLine();
-                                        opcionBorrado = 5;
                                         continue;
                                     }
 
@@ -554,6 +563,11 @@ public class MenuPrincipal {
                                     teclado.nextLine();
                                 }
                                 case 4 -> {
+                                    // === AQUÍ SE QUEDÓ SOLO LA PREGUNTA LIMPIA SIN EL DUPLICADO DEL BOTE ===
+                                    System.out.println(ROJO + "==========================================" + RESET);
+                                    System.out.println(ROJO + "     ALERTA: VACIADO DE BASE DE DATOS    " + RESET);
+                                    System.out.println(ROJO + "==========================================" + RESET);
+
                                     System.out.print(ROJO + "\n¿Está completamente seguro de borrar la BASE DE DATOS COMPLETA? (S/N): " + RESET);
                                     String confirmar = teclado.nextLine().trim().toUpperCase();
                                     if (confirmar.equals("S")) {
@@ -589,6 +603,7 @@ public class MenuPrincipal {
                 }
             } while (opcionSeleccionada != 6);
         } catch (Exception error) {
+            System.out.println("Error general: " + error.getMessage());
         }
     }
 }
